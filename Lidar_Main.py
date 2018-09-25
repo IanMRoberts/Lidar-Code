@@ -94,14 +94,41 @@ class Lidar:
                 LastAngle = CurrentAngle
         return Scan
 
+
+import rospy
+from lidar_node.msg import LidarScanData
+
+import time
+import math
+
 def main():
+    pub = rospy.Publisher('Lidar_Data', LidarScanData)
+    rospy.init_node('Lidar_Publisher')
+
     MyLidar = Lidar()
     MyLidar.Start()
     sleep(2)
-    scan1 = MyLidar.Scan()
+    while not rospy.is_shutdown():
+        for x in range(0,10)
+                scan = MyLidar.Scan()
+                msg = LidarScanData()
+                msg.header.frame_id = 'Lidar_Frame'
+                currentTime = time.time()
+                msg.header.stamp.secs = int(round(currentTime,0))
+                msg.header.stamp.nsecs = int( (currentTime - math.floor(currentTime))*10**9 )
+                angledata = []
+                distancedata = []
+                for point in scan:
+                        angledata.append(point[0])
+                        distancedata.append(point[1])
+                msg.Angles = angledata
+                msg.Distances = distancedata
+
+                rospy.loginfo(msg)
+                pub.publish(msg)
+
+
     MyLidar.Stop()
-    for x in scan1:
-        print(x)
 
 if __name__ == '__main__':
     main()#!/usr/bin/python
