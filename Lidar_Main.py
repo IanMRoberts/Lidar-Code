@@ -102,7 +102,7 @@ import time
 import math
 
 def main():
-    pub = rospy.Publisher('Lidar_xData', LidarScanData)
+    pub = rospy.Publisher('Lidar_Data', LidarScanData)
     rospy.init_node('Lidar_Publisher')
 
     MyLidar = Lidar()

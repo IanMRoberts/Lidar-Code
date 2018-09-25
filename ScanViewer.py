@@ -1,30 +1,38 @@
 #!/usr/bin/python
 #-------------------------------------------------------------------------------
 
-import matplotlib
 import matplotlib.pyplot as plt
-
 import math
 
-data = open('scan.txt', mode='r')
-x = []
-y = []
+import rospy
+from lidar_node.msg import LidarScanData
+
+def main():
+    Viewer = graph()
+    rospy.init_node('listener', anonymous=True)
+    rospy.Subscriber("Lidar_Data", LidarScanData, Viewer.UpdateData)
+
+    rospy.spin()
 
 
-for line in data:
-    # parse in each line
-    point = line.strip("\n").strip(" ").strip("(").strip(")").split(",")
+class graph():
 
-    # get the values and convert them
-    angle = (float(point[0]) * math.pi)/180
-    distance = float(point[1])/100
+    def __init__(self):
+    self.ax = plt.subplots()
+    self.ax.axis('equal')
 
-    x.append(distance*math.cos(angle))
-    y.append(distance*math.sin(angle))
+    def UpdateData(Data):
+            Angles = Data.Angles
+            Distances = Data.Distances
 
-data.close()
-
-fig, ax = plt.subplots()
-plt.axis('equal')
-ax.plot(x,y, '.', markersize=1)
-plt.show()
+            if len(Angles) == len(Distances):
+                x = []
+                y = []
+                self.ax.clear()
+                for i in range(0,len(Angles)):
+                    angle = (float(Angles[i]) * math.pi)/180
+                    distance = float(Distances[i])/100
+                    x.append(distance*math.cos(angle))
+                    y.append(distance*math.sin(angle))
+                self.ax.plot(x,y, '.', markersize=1)
+                plt.draw()
