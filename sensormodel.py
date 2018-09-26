@@ -3,6 +3,7 @@
 
 
 import math
+import scipy.ndimage
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
@@ -126,12 +127,6 @@ class GridMap:
                 else:
                     self.MapData[Index_x,Index_y]  = Value
 
-    def PlotImage(self):
-        max, min = self.MapData.max(),self.MapData.min()
-        imgArray = (self.MapData-min)/(max - min)
-        plt.imshow(imgArray,interpolation='nearest',cmap='Greys')
-        plt.show()
-
     def AddScan(self,GlobalSensorPosition,ScanData):
         SensorIndex = self.GetIndex(GlobalSensorPosition[0],GlobalSensorPosition[1])
         # ScanData = (distance,angle)
@@ -146,11 +141,30 @@ class GridMap:
             for pixel in Path:
                 self.SetValue((pixel[0],pixel[1]),pixel[2])
 
+    def rotate_bound(self,angle):
+        RotatedMap = scipy.ndimage.interpolation.rotate(self.MapData,angle,reshape=True,mode='constant', cval=0.0)
+        return RotatedMap
+
+
+    def Superimpose(self,NewGridMap,OdometryPosition):
+        x_p = OdometryPosition[0]
+        y_p = OdometryPosition[1]
+        theta_p = OdometryPosition[0]
+        for x in range(x_p-x_error,x_p+x_error,Resolution):
+            print(x)
+
+'''
+def main():
+    Map = GridMap()
+    Map.rotate_bound(30)
+
+'''
 
 import rospy
 from lidar_node.msg import LidarScanData
 
 def main():
+
     Viewer = graph()
     rospy.init_node('listener', anonymous=True)
     rospy.Subscriber("Lidar_Data", LidarScanData, Viewer.UpdateData)
@@ -170,7 +184,8 @@ class graph():
                 for i in range(0,len(Angles)):
                     scan.append([Distances[i],Angles[i]])
             self.Map.AddScan((0,0),scan)
-            self.Map.PlotImage()
+            numpy.savetxt("scan.csv", self.Map.MapData, delimiter=",")
+
 
 if __name__ == '__main__':
         main()
