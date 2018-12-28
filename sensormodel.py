@@ -86,13 +86,15 @@ class GridMap:
     Sensor = SensorModel()
 
     def __init__(self):
-        # Initialize the map
-        self.MapData = np.zeros((1023,1023))
         # min and max log odds value a cell can have
         self.Max_value = 3.5
         self.Min_value = -2.0
 
-        self.resolution = 10 # units of measure
+        self.resolution = 20 # units of measure
+
+        # Initialize the map
+        self.MapData = np.zeros((3*self.resolution/self.resolution,3*self.resolution/self.resolution))
+
         # the extents of the grid map
         self.Min_x = -(self.resolution*(self.MapData.shape[0]-1))/2
         self.Min_y = -(self.resolution*(self.MapData.shape[1]-1))/2
@@ -113,6 +115,37 @@ class GridMap:
         # return a tuple with the x and y position
         return (float(x),float(y))
 
+    def ExpandMap(self,Points):
+        New_Min_x = self.Min_x
+        New_Min_y = self.Min_y
+        New_Max_x = self.Max_x
+        New_Max_y = self.Max_y
+        print(self.MapData)
+        for point in Points:
+            if point[0] > New_Max_x:
+                New_Max_x = point[0]
+            if point[0] < New_Min_x:
+                New_Min_x = point[0]
+            if point[1] > New_Max_y:
+                New_Max_y = point[1]
+            if point[1] < New_Min_y:
+                New_Min_y = point[1]
+        if New_Min_x != self.Min_x or New_Min_y != self.Min_y or New_Max_x != self.Max_x or New_Max_y != self.Max_y:
+            New_Data = np.zeros((abs(New_Max_x-New_Min_x)/self.resolution,abs(New_Max_y-New_Min_y)/self.resolution))
+            if np.amax(self.MapData) > 0 or np.amin(self.MapData) < 0:
+                for i in range(0,self.MapData.shape[0]):
+                    for j in range(0,self.MapData.shape[1]):
+                        Coords = self.GetCoordinate(i,j)
+                        New_Index_x = math.ceil((Coords[0]-New_Min_x)/self.resolution) - 1
+                        New_Index_y = math.ceil((Coords[1]-New_Min_y)/self.resolution) - 1
+                        New_Data[New_Index_x,New_Index_y] = self.MapData[i,j]
+            self.MapData = New_Data
+            self.Min_x = New_Min_x
+            self.Min_y = New_Min_y
+            self.Max_x = New_Max_x
+            self.Max_y = New_Max_y
+        print(self.MapData)
+
     def SetValue(self,Index,Value):
         Index_x = Index[0]
         Index_y = Index[1]
@@ -130,35 +163,23 @@ class GridMap:
     def AddScan(self,GlobalSensorPosition,ScanData):
         SensorIndex = self.GetIndex(GlobalSensorPosition[0],GlobalSensorPosition[1])
         # ScanData = (distance,angle)
+        Points = []
         for Point in ScanData:
             angle = (float(Point[1]) * math.pi)/180
             distance = float(Point[0])
             x = distance*math.cos(angle) + GlobalSensorPosition[0]
             y = distance*math.sin(angle) + GlobalSensorPosition[1]
+            Points.append((x,y))
+
+        self.ExpandMap(Points)
+        for Point in Points:
+            x = Point[0]
+            y = Point[1]
             ReadingIndex = self.GetIndex(x,y)
 
             Path = self.Sensor.SensorFunction(SensorIndex,ReadingIndex,self.resolution)
             for pixel in Path:
                 self.SetValue((pixel[0],pixel[1]),pixel[2])
-
-    def rotate_bound(self,angle):
-        RotatedMap = scipy.ndimage.interpolation.rotate(self.MapData,angle,reshape=True,mode='constant', cval=0.0)
-        return RotatedMap
-
-
-    def Superimpose(self,NewGridMap,OdometryPosition):
-        x_p = OdometryPosition[0]
-        y_p = OdometryPosition[1]
-        theta_p = OdometryPosition[0]
-        for x in range(x_p-x_error,x_p+x_error,Resolution):
-            print(x)
-
-'''
-def main():
-    Map = GridMap()
-    Map.rotate_bound(30)
-
-'''
 
 import rospy
 from lidar_node.msg import LidarScanData
